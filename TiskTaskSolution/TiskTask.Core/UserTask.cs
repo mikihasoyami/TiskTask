@@ -13,6 +13,6 @@ namespace TiskTask.Core
         public string Title { get; private set; }
         public string Description { get; private set; }
         public DateTime Created { get; private set; }
-        public int TimeSpent {  get; private set; }
+        public TimeSpan TimeSpent {  get; private set; }
     }
 }
