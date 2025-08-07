@@ -15,19 +15,18 @@ namespace TiskTask.TelegramBot
   /// </summary>
   public class TelegramBot
   {
+    #region Поля и свойства
     /// <summary>
     /// Создание клиента для работы с Телеграм ботом.
     /// </summary>
     private readonly ITelegramBotClient _botClient;
+    #endregion
 
-    public TelegramBot(string botToken)
-    {
-      _botClient = new TelegramBotClient(botToken);
-    }
-
+    #region Методы
     /// <summary>
     /// Запускает бота и начинает получать обновления.
     /// </summary>
+    /// <param name="cancellationToken">Токен для отмены операции.</param>
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
       var me = await _botClient.GetMe();
@@ -35,9 +34,17 @@ namespace TiskTask.TelegramBot
       Console.WriteLine($"Бот @{me.Username} запущен. Ожидание сообщений...");
 
       await _botClient.ReceiveAsync(
-          updateHandler: new UpdateHandler(_botClient),
-          cancellationToken: cancellationToken
+        updateHandler: new UpdateHandler(_botClient),
+        cancellationToken: cancellationToken
       );
     }
+    #endregion
+
+    #region Конструкторы
+    public TelegramBot(string botToken)
+    {
+      _botClient = new TelegramBotClient(botToken);
+    }
+    #endregion
   }
 }
