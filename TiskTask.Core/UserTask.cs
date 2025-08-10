@@ -20,7 +20,7 @@ namespace TiskTask.Core
     /// <summary>
     /// Идентификатор пользователя telegram.
     /// </summary>
-    public int UserId { get; set; }
+    public long UserId { get; set; }
 
     /// <summary>
     /// Название задачи.

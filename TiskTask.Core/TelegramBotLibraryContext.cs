@@ -9,6 +9,7 @@ public partial class TelegramBotLibraryContext : DbContext
 {
     public TelegramBotLibraryContext()
     {
+      Database.EnsureCreated();
     }
 
     public TelegramBotLibraryContext(DbContextOptions<TelegramBotLibraryContext> options)

@@ -13,6 +13,7 @@ using TiskTask.TelegramBot;
 using static System.Collections.Specialized.BitVector32;
 using TiskTask.Core;
 using TelegramBot;
+using Microsoft.EntityFrameworkCore;
 
 namespace TiskTask.TelegramBot
 {
@@ -46,20 +47,20 @@ namespace TiskTask.TelegramBot
     /// </summary>
     public static Dictionary<string, string> taskData = new Dictionary<string, string>();
 
-        public string title;
-        public string description;
+    public string title;
+    public string description;
 
-        public UserTaskManager userTaskManager = new UserTaskManager();
+    public UserTaskManager userTaskManager = new UserTaskManager();
     #endregion
 
-        #region Методы
-        /// <summary>
-        /// Отправка текстового сообщения.
-        /// </summary>
-        /// <param name="chatId">Id пользователя.</param>
-        /// <param name="text">Техт пользователя.</param>
-        /// <param name="cancellationToken">Токен для отмены операции.</param>
-        private async Task SendTextMessageAsync(long chatId, string text, CancellationToken cancellationToken)
+    #region Методы
+    /// <summary>
+    /// Отправка текстового сообщения.
+    /// </summary>
+    /// <param name="chatId">Id пользователя.</param>
+    /// <param name="text">Техт пользователя.</param>
+    /// <param name="cancellationToken">Токен для отмены операции.</param>
+    private async Task SendTextMessageAsync(long chatId, string text, CancellationToken cancellationToken)
     {
       await _botClient.SendMessage(chatId: chatId, text: text, cancellationToken: cancellationToken);
     }
@@ -117,6 +118,14 @@ namespace TiskTask.TelegramBot
                     $"{BotChatCommands.Create} - это добавление новой задачи 🐙\n",
                     cancellationToken: cancellationToken
                   );
+
+                  using var context = new TelegramBotLibraryContext();
+
+                  var userTasks = await context.UserTasks
+                    .Where(task => task.UserId == chatId) 
+                    .ToListAsync();
+                  userTaskManager = new UserTaskManager(userTasks);
+                  
                   return;
                 }
                 else if (text == BotChatCommands.All) 
@@ -135,28 +144,26 @@ namespace TiskTask.TelegramBot
                 }
                 else if ((text != BotChatCommands.Create) && (create == true))
                 {
-                                    int taskId = userTaskManager.UsersTasks.Count() + 1;
-                                    DateTime createDate = DateTime.Now;
-                                    int userId = Int32.Parse(chatId.ToString());
-                                    CommandManager.CreateTaskAsync(botClient, chatId, update);
+                  int taskId = userTaskManager.UsersTasks.Count() + 1;
+                  DateTime createDate = DateTime.Now;
+                  int userId = Int32.Parse(chatId.ToString());
+                  CommandManager.CreateTaskAsync(botClient, chatId, update);
 
-                                    userTaskManager.CreateUserTask(taskId, userId, taskData["title"], taskData["description"], createDate);
-                                    //userTaskManager.CreateUserTask(taskId, userId, title, description, createDate);
-                                    create = false;
+                  userTaskManager.CreateUserTask(taskId, userId, taskData["title"], taskData["description"], createDate);
+                  create = false;
 
-                                    using var context = new TelegramBotLibraryContext();
+                  using var context = new TelegramBotLibraryContext();
 
-                                    context.UserTasks.Add(new UserTask
-                                    {
-                                        
-                                        UserId = userId,
-                                        Title = "Дмитрий",
-                                        Description = "Никитин",
-                                        Created = createDate
-                                    });
+                  context.UserTasks.Add(new UserTask
+                  {                  
+                    UserId = userId,
+                    Title = taskData["title"],
+                    Description = taskData["description"],
+                    Created = createDate
+                  });
 
-                                    context.SaveChanges();
-                                }
+                  context.SaveChanges();
+                }
                 else
                 {
                   await botClient.SendMessage(
