@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 
 namespace TiskTask.Core
 {
     /// <summary>
     /// Класс для работы с задачами пользователя
     /// </summary>
-    internal class UserTaskManager
+    public class UserTaskManager
     {
         #region Поля и свойства
 
@@ -61,9 +62,9 @@ namespace TiskTask.Core
 
         public List<UserTask> GetAllUserTasks(int userId)
         {
-            return UsersTasks
-                .Where(t => t.UserId == userId)
-                .ToList();
+          return UsersTasks
+              .Where(t => t.UserId == userId)
+              .ToList();
         }
 
         public UserTask GetUserTaskById(int taskId)
