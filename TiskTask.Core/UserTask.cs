@@ -73,6 +73,7 @@ namespace TiskTask.Core
     {
       StartTime = DateTime.Now; //при создании устанавливает
     }
+    
 
     public Stop() //при остановке считает разницу и выводить
     {
