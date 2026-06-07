@@ -15,6 +15,11 @@ namespace TiskTask.Core
         #region Поля и свойства
 
         /// <summary>
+        /// Файл со всеми тасками
+        /// </summary>
+        private readonly UserTaskFileStorage _storage;
+        
+        /// <summary>
         /// Список задач пользователей
         /// </summary>
         public List<UserTask> UsersTasks { get; set; } = new List<UserTask>();
@@ -32,6 +37,9 @@ namespace TiskTask.Core
                                             createDate
                                            );
             UsersTasks.Add(newUserTask);
+            
+            _storage.Save(UsersTasks);
+            
             return newUserTask;
         }
 
@@ -46,6 +54,10 @@ namespace TiskTask.Core
             existingTask.Title = userTask.Title;
             existingTask.Description = userTask.Description;
             existingTask.Created = userTask.Created;
+            existingTask.TimeSpent = userTask.TimeSpent;
+
+            _storage.Save(UsersTasks);
+            
             return true;
         }
 
@@ -57,6 +69,9 @@ namespace TiskTask.Core
                 return false;
             }
             UsersTasks.Remove(removableTask);
+            
+            _storage.Save(UsersTasks);
+            
             return true;
         }
 
@@ -79,14 +94,21 @@ namespace TiskTask.Core
         #endregion
 
         #region Конструкторы
+        
         public UserTaskManager() 
             : this(new List<UserTask>())
         {
         }
 
-        public UserTaskManager(List<UserTask> userTasks)
+        public UserTaskManager(List<UserTask> userTasks) 
         {
             UsersTasks = userTasks;
+        }
+        
+        public UserTaskManager(UserTaskFileStorage storage)
+        {
+            _storage = storage;
+            UsersTasks = _storage.Load();
         }
 
         #endregion
