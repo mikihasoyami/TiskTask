@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿﻿﻿﻿using System;
 
 namespace TiskTask.Core
 {
@@ -25,12 +21,12 @@ namespace TiskTask.Core
     /// <summary>
     /// Название задачи.
     /// </summary>
-    public string Title { get; set; }
+    public string Title { get; set; } = string.Empty;
 
     /// <summary>
     /// Описание задачи.
     /// </summary>
-    public string Description { get; set; }
+    public string Description { get; set; } = string.Empty;
 
     /// <summary>
     /// Дата создания задачи.
@@ -40,12 +36,32 @@ namespace TiskTask.Core
     /// <summary>
     /// Потраченное время на задачу.
     /// </summary>
-    public TimeSpan TimeSpent {  get; set; }
+    public TimeSpan TimeSpent { get; set; }
+
+    /// <summary>
+    /// Признак того, что задача сейчас активна.
+    /// </summary>
+    public bool IsRunning { get; set; }
+
+    /// <summary>
+    /// Момент последнего запуска таймера.
+    /// </summary>
+    public DateTime? StartedAtUtc { get; set; }
+
+    /// <summary>
+    /// Признак того, что задача завершена.
+    /// </summary>
+    public bool IsCompleted { get; set; }
+
+    /// <summary>
+    /// Момент завершения задачи.
+    /// </summary>
+    public DateTime? CompletedAtUtc { get; set; }
     #endregion
 
     #region Конструкторы
 
-    public UserTask(int id, int userId, string title, string description, DateTime createdDate)
+    public UserTask(int id, long userId, string title, string description, DateTime createdDate)
     {
       Id = id;
       UserId = userId;
@@ -58,6 +74,29 @@ namespace TiskTask.Core
     {
     }
 
+    #endregion
+
+    #region Методы
+    /// <summary>
+    /// Возвращает полное затраченное время с учетом текущего запущенного интервала.
+    /// </summary>
+    public TimeSpan GetCurrentTimeSpent(DateTime? currentUtc = null)
+    {
+      if (!IsRunning || StartedAtUtc == null)
+      {
+        return TimeSpent;
+      }
+
+      var now = currentUtc ?? DateTime.UtcNow;
+      var elapsed = now - StartedAtUtc.Value;
+
+      if (elapsed < TimeSpan.Zero)
+      {
+        elapsed = TimeSpan.Zero;
+      }
+
+      return TimeSpent + elapsed;
+    }
     #endregion
   }
 }

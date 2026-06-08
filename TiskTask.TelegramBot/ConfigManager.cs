@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace TiskTask.TelegramBot
 {
@@ -13,7 +9,7 @@ namespace TiskTask.TelegramBot
     /// <summary>
     /// Поле для сохранения пути к файлу с токеном.
     /// </summary>
-    private readonly string _filePath;
+    private readonly string _filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "token.txt");
     #endregion
 
     #region Методы
@@ -22,18 +18,15 @@ namespace TiskTask.TelegramBot
     /// </summary>
     public string GetToken()
     {
-      string _filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "token.txt");
       FileInfo fileInfo = new FileInfo(_filePath);
-      string readerToken = "";
+      string readerToken = string.Empty;
 
       try
       {
         if (File.Exists(_filePath))
         {
-          using (StreamReader reader = fileInfo.OpenText())
-          {
-            readerToken = reader.ReadLine();
-          }
+          using StreamReader reader = fileInfo.OpenText();
+          readerToken = reader.ReadLine() ?? string.Empty;
         }
         else
         {
@@ -41,13 +34,7 @@ namespace TiskTask.TelegramBot
           File.Create(_filePath).Close();
           Console.Write("Файл создан автоматически по пути ");
           Console.Write(fileInfo + "\n");
-          Console.WriteLine("Введите токен для вашего телеграм бота: ");
-          readerToken = Console.ReadLine();
-
-          using (StreamWriter writer = fileInfo.AppendText())
-          {
-            writer.WriteLine(readerToken);
-          }
+          Console.WriteLine("Добавьте токен в файл, если захотите запускать Telegram-бота.");
         }
       }
       catch (Exception ex)
@@ -63,7 +50,10 @@ namespace TiskTask.TelegramBot
     /// </summary>
     public void DeletFile()
     {
-      File.Delete(_filePath);
+      if (File.Exists(_filePath))
+      {
+        File.Delete(_filePath);
+      }
     }
     #endregion
   }
