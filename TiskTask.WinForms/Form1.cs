@@ -129,7 +129,7 @@ public partial class Form1 : Form
         }
         else
         {
-            _manager.ChangeUserTask(_selectedTaskId.Value, title, description);
+            _manager.ChangeUserTask(_selectedTaskId.Value, title, description, _selectedUserId?? 0);
         }
 
         RefreshTasks(keepSelection: true);

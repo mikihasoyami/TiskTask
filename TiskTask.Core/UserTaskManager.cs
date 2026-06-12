@@ -185,17 +185,15 @@ namespace TiskTask.Core
             return true;
         }
 
-        public bool ChangeUserTask(int taskId, string title, string description)
+        public void ChangeUserTask(int taskId, string title, string description, long userId)
         {
             var task = GetUserTaskById(taskId);
             if (task != null)
             {
                 task.Title = title;
                 task.Description = description;
-                return ChangeUserTask(task);
+                task.UserId = userId;
             }
-
-            return false;
         }
         
         public bool DeleteUserTask(int id)
