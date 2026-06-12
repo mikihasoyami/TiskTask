@@ -329,11 +329,9 @@ namespace TiskTask.Core
         #endregion
 
         #region Конструкторы
+
         public UserTaskManager()
             : this(new TelegramBotLibraryContext())
-        
-        public UserTaskManager() 
-            : this(new List<UserTask>())
         {
         }
 

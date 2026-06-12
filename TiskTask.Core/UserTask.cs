@@ -99,26 +99,4 @@ namespace TiskTask.Core
     }
     #endregion
   }
-
-  /// <summary>
-  /// класс счетчика
-  /// </summary>
-  public class Stopwatch
-  { 
-    public DateTime StartTime { get; } //берет время запуска
-
-    public Stopwatch()
-    {
-      StartTime = DateTime.Now; //при создании устанавливает
-    }
-    
-
-    public Stop() //при остановке считает разницу и выводить
-    {
-      TimeSpan elapsedTime = DateTime.Now - StartTime;
-      string timeData = String.Format("{0:HH ч. mm м. ss с. ff мс.}", elapsedTime);
-      Console.WriteLine(timeData);
-      return elapsedTime;
-    }
-  }
 }
