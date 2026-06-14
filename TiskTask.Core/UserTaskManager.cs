@@ -95,6 +95,27 @@ public class UserTaskManager
         _tasks.Save(UsersTasks);
         return newUserTask;
     }
+    
+    /// <summary>
+    /// Создает задачу для консольного UI.
+    /// </summary>
+    public UserTask CreateUserTask(int taskId, long userId, string title, string description)
+    {
+        EnsureUserExists(userId);
+      
+        var newUserTask = new UserTask
+        {
+            Id = taskId,
+            UserId = userId,
+            Title = title,
+            Description = description,
+            Created = DateTime.UtcNow
+        };
+      
+        UsersTasks.Add(newUserTask);
+        _tasks.Save(UsersTasks);
+        return newUserTask;
+    }
 
         /// <summary>
         /// Создает нового пользователя.
@@ -205,7 +226,7 @@ public class UserTaskManager
             
             return true;
         }
-
+        
         public void ChangeUserTask(int taskId, string title, string description, long userId)
         {
             var task = GetUserTaskById(taskId);
@@ -217,12 +238,16 @@ public class UserTaskManager
             }
         }
         
-        public bool DeleteUserTask(int id)
+        /// <summary>
+        ///Удалить задачу в приложении Winform.
+        /// </summary>
+        /// <param name="id"></param>
+        public void DeleteUserTask(int id)
         {
             var removableTask = UsersTasks.FirstOrDefault(t => t.Id == id);
             if (removableTask == null)
             {
-                return false;
+                return;
             }
 
             _context?.UserTasks.Remove(removableTask);
@@ -231,7 +256,24 @@ public class UserTaskManager
             
             _tasks.Save(UsersTasks);
             
-            return true;
+        }
+        /// <summary>
+        ///Удалить задачу в консольном UI.
+        /// </summary>
+        /// <param name="id"></param>
+        public void DeleteUserTask(long userId, int id)
+        {
+            var removableTask = UsersTasks.FirstOrDefault(t => t.Id == id);
+            if (removableTask == null)
+            {
+                return;
+            }
+
+            Console.WriteLine($"Пользователь с ИД {userId} удалил задачу" );
+            UsersTasks.Remove(removableTask);
+            
+            _tasks.Save(UsersTasks);
+            
         }
   
           /// <summary>

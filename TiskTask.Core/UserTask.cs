@@ -115,7 +115,7 @@ public class UserTask
   
       public void Print()
     {
-        Console.WriteLine($"{Id} {Title} ({Description})");
+        Console.WriteLine($" {Title} ({Description})");
     }
     #endregion
 }
