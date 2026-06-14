@@ -80,9 +80,7 @@ public class MainWindowConsole
 
         if (_activeTaskId.HasValue)
         {
-            Console.WriteLine("У вас уже есть активная задача! Сначала завершите её.");
-            Console.ReadKey();
-            return;
+            StopTask();
         }
 
         if (_tasksManager.UsersTasks.Count == 0)
@@ -170,7 +168,7 @@ public class MainWindowConsole
                 ? _tasksManager.UsersTasks.Max(t => t.Id) + 1
                 : 1;
 
-            var newTask = _tasksManager.CreateUserTask(_userId, title, description);
+            var newTask = _tasksManager.CreateUserTask(newId, _userId, title, description);
             Console.WriteLine($"\n✅ Задача '{newTask.Title}' успешно добавлена!");
         }
         catch (Exception ex)
@@ -220,7 +218,7 @@ public class MainWindowConsole
 
         if (confirm?.ToLower() == "y")
         {
-            _tasksManager.DeleteUserTask(taskToDelete.Id);
+            _tasksManager.DeleteUserTask(_userId, taskToDelete.Id);
             Console.WriteLine("✅ Задача успешно удалена!");
         }
         else

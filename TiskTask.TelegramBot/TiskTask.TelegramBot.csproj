@@ -14,4 +14,10 @@
     <ProjectReference Include="..\TiskTask.Core\TiskTask.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Update="Program.cs">
+      <DependentUpon>TelegramBot.cs</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
 </Project>
