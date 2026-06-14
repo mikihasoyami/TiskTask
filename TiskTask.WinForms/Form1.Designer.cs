@@ -14,7 +14,7 @@ partial class Form1
     private Label statusFilterLabel;
     private ComboBox statusFilterComboBox;
     private ListView tasksListView;
-    private ColumnHeader UserColumnHeader;
+    private ColumnHeader idColumnHeader;
     private ColumnHeader titleColumnHeader;
     private ColumnHeader statusColumnHeader;
     private ColumnHeader timeColumnHeader;
@@ -65,7 +65,7 @@ partial class Form1
         statusFilterLabel = new Label();
         statusFilterComboBox = new ComboBox();
         tasksListView = new ListView();
-        UserColumnHeader = new ColumnHeader();
+        idColumnHeader = new ColumnHeader();
         titleColumnHeader = new ColumnHeader();
         statusColumnHeader = new ColumnHeader();
         timeColumnHeader = new ColumnHeader();
@@ -163,7 +163,7 @@ partial class Form1
         // 
         // tasksListView
         // 
-        tasksListView.Columns.AddRange(new ColumnHeader[] { UserColumnHeader, titleColumnHeader, statusColumnHeader, timeColumnHeader });
+        tasksListView.Columns.AddRange(new ColumnHeader[] { idColumnHeader, titleColumnHeader, statusColumnHeader, timeColumnHeader });
         tasksListView.Dock = DockStyle.Fill;
         tasksListView.FullRowSelect = true;
         tasksListView.GridLines = true;
@@ -177,10 +177,10 @@ partial class Form1
         tasksListView.View = View.Details;
         tasksListView.SelectedIndexChanged += tasksListView_SelectedIndexChanged;
         // 
-        // UserColumnHeader
+        // idColumnHeader
         // 
-        UserColumnHeader.Text = "Пользователь";
-        UserColumnHeader.Width = 100; ;
+        idColumnHeader.Text = "Id";
+        idColumnHeader.Width = 50;
         // 
         // titleColumnHeader
         // 

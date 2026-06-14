@@ -246,63 +246,56 @@ public partial class Form1 : Form
     private void RefreshTasks(bool keepSelection = false)
     {
         _manager.ReloadFromDatabase();
-
-        // Получаем ВСЕХ пользователей для быстрого доступа по Id
-        var allUsers = _manager.GetAllUsers();
-        var userDictionary = allUsers.ToDictionary(user => user.Id, user => user.Name);
-
-        // Получаем ВСЕ задачи от всех пользователей
-        var allTasks = new List<UserTask>();
-
-        foreach (var user in allUsers)
+        _isRefreshing = true;
+        
+        var tasks = _manager.GetAllUserTasks(_selectedUserId.Value)
+            .OrderBy(task => task.Id)
+            .ToList();
+        
+        try
         {
-            var userTasks = _manager.GetAllUserTasks(user.Id);
-            allTasks.AddRange(userTasks);
-        }
-
-        // Сортируем по Id задачи
-        var sortedTasks = allTasks.OrderBy(x => x.Id).ToList();
-
-        // Применяем фильтр по статусу
-        var filteredTasks = ApplyStatusFilter(sortedTasks).ToList();
-
-        var selectedTaskId = keepSelection ? _selectedTaskId : null;
-
-        tasksListView.BeginUpdate();
-        tasksListView.Items.Clear();
-
-
-        foreach (var task in filteredTasks)
-        {
-
-            var userName = userDictionary.ContainsKey(task.UserId)
-                ? userDictionary[task.UserId]
-                : $"Пользователь {task.UserId}";
-
-            var item = new ListViewItem(userName);
-            item.SubItems.Add(task.Title);
-            item.SubItems.Add(GetTaskStatusText(task));
-            item.SubItems.Add(_manager.GetTrackedTime(task.Id).ToString(@"hh\:mm\:ss"));
-            item.Tag = task.Id;
-            item.BackColor = GetTaskBackColor(task);
-            item.ForeColor = GetTaskForeColor(task);
-            tasksListView.Items.Add(item);
-
-            if (selectedTaskId == task.Id)
+            if (_selectedUserId == null)
             {
-                item.Selected = true;
+                tasksListView.Items.Clear();
+                UpdateActiveTaskLabel();
+                createdValueLabel.Text = "Сначала создай или выбери пользователя";
+                return;
             }
-        }
 
-        tasksListView.EndUpdate();
+            tasks = ApplyStatusFilter(tasks).ToList();
+
+            var selectedTaskId = keepSelection ? _selectedTaskId : null;
+
+            tasksListView.BeginUpdate();
+            tasksListView.Items.Clear();
+
+            foreach (var task in tasks)
+            {
+                var item = new ListViewItem(task.Id.ToString());
+                item.SubItems.Add(task.Title);
+                item.SubItems.Add(GetTaskStatusText(task));
+                item.SubItems.Add(_manager.GetTrackedTime(task.Id).ToString(@"hh\:mm\:ss"));
+                item.Tag = task.Id;
+                item.BackColor = GetTaskBackColor(task);
+                item.ForeColor = GetTaskForeColor(task);
+                tasksListView.Items.Add(item);
+
+                if (selectedTaskId == task.Id)
+                {
+                    item.Selected = true;
+                }
+            }
+
+            tasksListView.EndUpdate();
+        }
+        finally
+        {
+            _isRefreshing = false;
+        }
+        
         UpdateActiveTaskLabel();
 
-        if (selectedTaskId != null && filteredTasks.Any(x => x.Id == selectedTaskId.Value))
-        {
-            var selectedTask = filteredTasks.First(x => x.Id == selectedTaskId.Value);
-            UpdateEditor(selectedTask);
-        }
-        else if (_selectedTaskId != null && !filteredTasks.Any(x => x.Id == _selectedTaskId.Value))
+         if (_selectedTaskId != null && !tasks.Any(task => task.Id == _selectedTaskId.Value))
         {
             ClearEditor();
         }

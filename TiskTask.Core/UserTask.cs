@@ -1,20 +1,21 @@
 ﻿﻿﻿﻿using System;
 
-namespace TiskTask.Core
+namespace TiskTask.Core;
+
+/// <summary>
+/// Описывает модель задачи.
+/// </summary>
+public class UserTask
 {
-  /// <summary>
-  /// Описывает модель задачи.
-  /// </summary>
-  public class UserTask
-  {
     #region Поля и свойства
+
     /// <summary>
     /// Идентификатор.
     /// </summary>
     public int Id { get; set; }
 
     /// <summary>
-    /// Идентификатор пользователя telegram.
+    /// Идентификатор пользователя.
     /// </summary>
     public long UserId { get; set; }
 
@@ -63,11 +64,12 @@ namespace TiskTask.Core
 
     public UserTask(int id, long userId, string title, string description, DateTime createdDate)
     {
-      Id = id;
-      UserId = userId;
-      Title = title;
-      Description = description;
-      Created = createdDate;
+        Id = id;
+        UserId = userId;
+        Title = title;
+        Description = description;
+        Created = createdDate;
+        TimeSpent = TimeSpan.Zero;
     }
     
     public UserTask(long userId, string title, string description)
@@ -78,12 +80,17 @@ namespace TiskTask.Core
       Created = DateTime.UtcNow;
     }
 
-    public UserTask() 
+    public UserTask()
     {
+        Id = -1;
+        UserId = -1;
+        Title = "None";
+        Description = "None";
+        Created = DateTime.Now;
+        TimeSpent = TimeSpan.Zero;
     }
-
     #endregion
-
+      
     #region Методы
     /// <summary>
     /// Возвращает полное затраченное время с учетом текущего запущенного интервала.
@@ -105,6 +112,11 @@ namespace TiskTask.Core
 
       return TimeSpent + elapsed;
     }
+  
+      public void Print()
+    {
+        Console.WriteLine($" {Title} ({Description})");
+    }
     #endregion
-  }
 }
+
