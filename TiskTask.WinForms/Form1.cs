@@ -38,10 +38,10 @@ public partial class Form1 : Form
     }
 
     private void tasksListView_SelectedIndexChanged(object? sender, EventArgs e)
-    {    
+    {
         if (_isRefreshing)
             return;
-        
+
         if (tasksListView.SelectedItems.Count == 0)
         {
             return;
@@ -92,7 +92,7 @@ public partial class Form1 : Form
         }
         catch (ArgumentException exception)
         {
-            MessageBox.Show(exception.Message,"Ошибка при создании нового пользователя!", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show(exception.Message, "Ошибка при создании нового пользователя!", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 
@@ -129,7 +129,7 @@ public partial class Form1 : Form
         }
         else
         {
-            _manager.ChangeUserTask(_selectedTaskId.Value, title, description, _selectedUserId?? 0);
+            _manager.ChangeUserTask(_selectedTaskId.Value, title, description, _selectedUserId ?? 0);
         }
 
         RefreshTasks(keepSelection: true);
@@ -297,7 +297,7 @@ public partial class Form1 : Form
 
         tasksListView.EndUpdate();
         _isRefreshing = false;
-        
+
         UpdateActiveTaskLabel();
 
 

@@ -1,9 +1,10 @@
-﻿﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
-using Microsoft.EntityFrameworkCore;
 
 namespace TiskTask.Core;
 
@@ -20,7 +21,7 @@ public partial class TelegramBotLibraryContext : DbContext
 
     public TelegramBotLibraryContext()
     {
-      InitializeDatabase();
+        InitializeDatabase();
     }
 
     public TelegramBotLibraryContext(DbContextOptions<TelegramBotLibraryContext> options)

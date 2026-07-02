@@ -87,7 +87,7 @@ public class UserTaskFileStorage
 
         File.WriteAllLines(_filePath, lines);
     }
-    
+
     #endregion
 
     #region Конструктор

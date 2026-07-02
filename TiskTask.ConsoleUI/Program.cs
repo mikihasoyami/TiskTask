@@ -31,7 +31,7 @@ public class Program
                 password = Console.ReadLine();
 
                 // Log In
-                if(userManager.IsUser(login, password))
+                if (userManager.IsUser(login, password))
                 {
                     mainWindow = new MainWindowConsole(userManager.GetUser(login, password));
                     mainWindow.Menu();

@@ -19,7 +19,7 @@ public class UserManager
     public bool IsUser(string login, string password)
     {
         foreach (var user in _users)
-            if (user.Login == login && user.Password == password) 
+            if (user.Login == login && user.Password == password)
                 return true;
         return false;
     }

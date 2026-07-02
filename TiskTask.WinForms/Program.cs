@@ -11,5 +11,5 @@ static class Program
         // настроить параметры приложения
         ApplicationConfiguration.Initialize();
         Application.Run(new Form1());
-    }    
+    }
 }

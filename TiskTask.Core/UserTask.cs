@@ -1,4 +1,4 @@
-﻿﻿﻿﻿using System;
+﻿using System;
 
 namespace TiskTask.Core;
 
@@ -71,13 +71,13 @@ public class UserTask
         Created = createdDate;
         TimeSpent = TimeSpan.Zero;
     }
-    
+
     public UserTask(long userId, string title, string description)
     {
-      UserId = userId;
-      Title = title;
-      Description = description;
-      Created = DateTime.UtcNow;
+        UserId = userId;
+        Title = title;
+        Description = description;
+        Created = DateTime.UtcNow;
     }
 
     public UserTask()
@@ -90,30 +90,30 @@ public class UserTask
         TimeSpent = TimeSpan.Zero;
     }
     #endregion
-      
+
     #region Методы
     /// <summary>
     /// Возвращает полное затраченное время с учетом текущего запущенного интервала.
     /// </summary>
     public TimeSpan GetCurrentTimeSpent(DateTime? currentUtc = null)
     {
-      if (!IsRunning || StartedAtUtc == null)
-      {
-        return TimeSpent;
-      }
+        if (!IsRunning || StartedAtUtc == null)
+        {
+            return TimeSpent;
+        }
 
-      var now = currentUtc ?? DateTime.UtcNow;
-      var elapsed = now - StartedAtUtc.Value;
+        var now = currentUtc ?? DateTime.UtcNow;
+        var elapsed = now - StartedAtUtc.Value;
 
-      if (elapsed < TimeSpan.Zero)
-      {
-        elapsed = TimeSpan.Zero;
-      }
+        if (elapsed < TimeSpan.Zero)
+        {
+            elapsed = TimeSpan.Zero;
+        }
 
-      return TimeSpent + elapsed;
+        return TimeSpent + elapsed;
     }
-  
-      public void Print()
+
+    public void Print()
     {
         Console.WriteLine($" {Title} ({Description})");
     }
