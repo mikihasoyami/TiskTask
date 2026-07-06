@@ -1,43 +1,70 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using TiskTask.Model;
+using TiskTask.Services;
 
 namespace TiskTask.Core;
 
 public class UserManager
 {
-    private UsersFileStorage _usersStorage = new UsersFileStorage("Users.csv");
-    List<UserModel> _users;
+  private readonly AppDbContext _context;
 
-    public UserManager()
+  public UserManager(AppDbContext context)
+  {
+    _context = context ?? throw new ArgumentNullException(nameof(context));
+  }
+
+  /// <summary>
+  /// Проверяет существование пользователя с таким логином и паролем
+  /// </summary>
+  public bool IsUser(string login, string password)
+  {
+    var user = _context.Users.FirstOrDefault(u => u.Name == login);
+    if (user == null) return false;
+
+    // Проверяем хэш пароля
+    return PasswordHasher.VerifyPassword(password, user.Password);
+  }
+
+  /// <summary>
+  /// Возвращает объект пользователя для авторизации или null, если данные неверны
+  /// </summary>
+  public User? GetUser(string login, string password)
+  {
+    var user = _context.Users
+        .AsNoTracking()
+        .FirstOrDefault(u => u.Name == login);
+
+    if (user == null) return null;
+
+    if (PasswordHasher.VerifyPassword(password, user.Password))
     {
-        _users = _usersStorage.Load();
+      return user;
     }
 
-    public bool IsUser(string login, string password)
+    return null;
+  }
+
+  /// <summary>
+  /// Регистрирует нового пользователя в базе данных
+  /// </summary>
+  public void CreateNewUser(string login, string password)
+  {
+    var isLoginTaken = _context.Users.Any(u => u.Name == login);
+    if (isLoginTaken)
     {
-        foreach (var user in _users)
-            if (user.Login == login && user.Password == password)
-                return true;
-        return false;
+      throw new ArgumentException("Пользователь с таким логином уже зарегистрирован!");
     }
 
-    public UserModel GetUser(string login, string password)
+    var newUser = new User
     {
-        foreach (var user in _users)
-        {
-            if (user.Login == login && user.Password == password)
-                return user;
-        }
-        return new UserModel();
-    }
+      Name = login,
+      Password = PasswordHasher.HashPassword(password),
+      CreatedAtUtc = DateTime.UtcNow
+    };
 
-    public void CreateNewUser(string login, string password)
-    {
-
-        _users.Add(new UserModel(_users.Count, login, password));
-        _usersStorage.Save(_users);
-    }
+    _context.Users.Add(newUser);
+    _context.SaveChanges();
+  }
 }

@@ -1,4 +1,6 @@
+using Microsoft.EntityFrameworkCore;
 using TiskTask.Core;
+using TiskTask.Model;
 
 namespace TiskTask.WinForms;
 
@@ -12,7 +14,8 @@ public partial class Form1 : Form
         Completed
     }
 
-    private readonly UserTaskManager _manager = new();
+    private static readonly AppDbContext _context = new AppDbContext();
+    private readonly UserTaskManager _manager = new UserTaskManager(_context);
     private int? _selectedTaskId;
     private long? _selectedUserId;
     private bool _isLoadingUsers;
@@ -39,18 +42,8 @@ public partial class Form1 : Form
 
     private void tasksListView_SelectedIndexChanged(object? sender, EventArgs e)
     {
-        if (_isRefreshing)
+        if ((_isRefreshing) || (tasksListView.SelectedItems.Count == 0) || (tasksListView.SelectedItems[0].Tag is not int taskId))
             return;
-
-        if (tasksListView.SelectedItems.Count == 0)
-        {
-            return;
-        }
-
-        if (tasksListView.SelectedItems[0].Tag is not int taskId)
-        {
-            return;
-        }
 
         SelectTask(taskId);
     }
@@ -82,8 +75,12 @@ public partial class Form1 : Form
 
     private void addUserButton_Click(object? sender, EventArgs e)
     {
-        var userName = PromptForText("Новый пользователь", "Введите имя пользователя:");
-        try
+    var userName = PromptForText("Новый пользователь", "Введите имя пользователя:");
+    if (string.IsNullOrWhiteSpace(userName))
+    {
+      return;
+    }
+    try
         {
             var user = _manager.CreateUser(userName);
             LoadUsers(user.Id);
@@ -149,6 +146,15 @@ public partial class Form1 : Form
         }
 
         var task = _manager.GetUserTaskById(_selectedTaskId.Value);
+        if (task == null)
+        {
+          MessageBox.Show(
+              "Не удалось удалить задачу, так как она не найдена в базе данных.",
+              "Ошибка",
+              MessageBoxButtons.OK,
+              MessageBoxIcon.Error);
+          return;
+        }
         var result = MessageBox.Show(
             $"Удалить задачу \"{task.Title}\"?",
             "Подтверждение удаления",
@@ -179,6 +185,15 @@ public partial class Form1 : Form
         }
 
         var task = _manager.GetUserTaskById(_selectedTaskId.Value);
+        if (task == null)
+        {
+          MessageBox.Show(
+              "Не удалось завершить задачу, так как она не найдена в базе данных.",
+              "Ошибка",
+              MessageBoxButtons.OK,
+              MessageBoxIcon.Error);
+          return;
+        }
         if (task.IsCompleted)
         {
             MessageBox.Show("Эта задача уже завершена.", "TiskTask", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -245,71 +260,63 @@ public partial class Form1 : Form
 
     private void RefreshTasks(bool keepSelection = false)
     {
-        _isRefreshing = true;
-        _manager.ReloadFromDatabase();
+      _isRefreshing = true;
 
-        // Получаем ВСЕХ пользователей для быстрого доступа по Id
-        var allUsers = _manager.GetAllUsers();
-        var userDictionary = allUsers.ToDictionary(user => user.Id, user => user.Name);
+      var allUsers = _manager.GetAllUsers();
+      var userDictionary = allUsers.ToDictionary(user => user.Id, user => user.Name);
+      var allTasks = _manager.GetAllTasks();
+      var sortedTasks = allTasks.OrderBy(x => x.Id).ToList();
+      var filteredTasks = ApplyStatusFilter(sortedTasks).ToList();
+      var selectedTaskId = keepSelection ? _selectedTaskId : null;
 
-        // Получаем ВСЕ задачи от всех пользователей
-        var allTasks = new List<UserTask>();
+      tasksListView.BeginUpdate();
+      tasksListView.Items.Clear();
 
-        foreach (var user in allUsers)
+      foreach (var task in filteredTasks)
+      {
+        var userName = userDictionary.ContainsKey(task.UserId)
+            ? userDictionary[task.UserId]
+            : $"Пользователь {task.UserId}";
+
+        var item = new ListViewItem(userName);
+        item.SubItems.Add(task.Title);
+        item.SubItems.Add(GetTaskStatusText(task));
+        item.SubItems.Add(_manager.GetTrackedTime(task.Id).ToString(@"hh\:mm\:ss"));
+        item.Tag = task.Id;
+        item.BackColor = GetTaskBackColor(task);
+        item.ForeColor = GetTaskForeColor(task);
+        tasksListView.Items.Add(item);
+
+        if (selectedTaskId == task.Id)
         {
-            var userTasks = _manager.GetAllUserTasks(user.Id);
-            allTasks.AddRange(userTasks);
+          item.Selected = true;
         }
+      }
 
-        // Сортируем по Id задачи
-        var sortedTasks = allTasks.OrderBy(x => x.Id).ToList();
+      tasksListView.EndUpdate();
+      _isRefreshing = false;
 
-        // Применяем фильтр по статусу
-        var filteredTasks = ApplyStatusFilter(sortedTasks).ToList();
+      UpdateActiveTaskLabel();
 
-        var selectedTaskId = keepSelection ? _selectedTaskId : null;
-
-        tasksListView.BeginUpdate();
-        tasksListView.Items.Clear();
-
-
-        foreach (var task in filteredTasks)
-        {
-
-            var userName = userDictionary.ContainsKey(task.UserId)
-                ? userDictionary[task.UserId]
-                : $"Пользователь {task.UserId}";
-
-            var item = new ListViewItem(userName);
-            item.SubItems.Add(task.Title);
-            item.SubItems.Add(GetTaskStatusText(task));
-            item.SubItems.Add(_manager.GetTrackedTime(task.Id).ToString(@"hh\:mm\:ss"));
-            item.Tag = task.Id;
-            item.BackColor = GetTaskBackColor(task);
-            item.ForeColor = GetTaskForeColor(task);
-            tasksListView.Items.Add(item);
-
-            if (selectedTaskId == task.Id)
-            {
-                item.Selected = true;
-            }
-        }
-
-        tasksListView.EndUpdate();
-        _isRefreshing = false;
-
-        UpdateActiveTaskLabel();
-
-
-        if (_selectedTaskId != null && !filteredTasks.Any(x => x.Id == _selectedTaskId.Value))
-        {
-            ClearEditor();
-        }
+      if (_selectedTaskId != null && !filteredTasks.Any(x => x.Id == _selectedTaskId.Value))
+      {
+        ClearEditor();
+      }
     }
+
 
     private void SelectTask(int taskId)
     {
         var task = _manager.GetUserTaskById(taskId);
+        if (task == null)
+        {
+          MessageBox.Show(
+              "Не удалось выбрать задачу, так как она не найдена в базе данных.",
+              "Ошибка",
+              MessageBoxButtons.OK,
+              MessageBoxIcon.Error);
+          return;
+        }
         UpdateEditor(task);
     }
 
@@ -449,12 +456,10 @@ public partial class Form1 : Form
 
     private void LoadUsers(long? selectedUserId = null)
     {
-        _manager.ReloadFromDatabase();
         var users = _manager.GetAllUsers();
 
         _isLoadingUsers = true;
         usersComboBox.DataSource = null;
-
         if (users.Count == 0)
         {
             _selectedUserId = null;

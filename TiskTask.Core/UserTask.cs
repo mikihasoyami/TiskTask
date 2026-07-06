@@ -55,6 +55,11 @@ public class UserTask
     public bool IsCompleted { get; set; }
 
     /// <summary>
+    /// Статус.
+    /// </summary>
+    public UserTaskStatus Status { get; set; } = UserTaskStatus.New;
+
+    /// <summary>
     /// Момент завершения задачи.
     /// </summary>
     public DateTime? CompletedAtUtc { get; set; }

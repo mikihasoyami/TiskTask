@@ -1,18 +1,19 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Telegram.Bot.Polling;
-using Telegram.Bot.Types.Enums;
-using Telegram.Bot.Types;
 using Telegram.Bot;
-using System.Text.Json;
+using Telegram.Bot.Polling;
+using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
+using TiskTask.Core;
+using TiskTask.Model;
 using TiskTask.TelegramBot;
 using static System.Collections.Specialized.BitVector32;
-using TiskTask.Core;
-using Microsoft.EntityFrameworkCore;
 
 namespace TiskTask.TelegramBot
 {
@@ -46,10 +47,10 @@ namespace TiskTask.TelegramBot
         /// </summary>
         public static Dictionary<string, string> taskData = new Dictionary<string, string>();
 
-        public string title;
-        public string description;
-
-        public UserTaskManager userTaskManager = new UserTaskManager();
+        public string title = "";
+        public string description = "";
+        private static readonly AppDbContext _context = new AppDbContext();
+        public UserTaskManager userTaskManagerTG = new UserTaskManager(_context);
         #endregion
 
         #region Методы
@@ -118,50 +119,34 @@ namespace TiskTask.TelegramBot
                                       cancellationToken: cancellationToken
                                     );
 
-                                    using var context = new TelegramBotLibraryContext();
+                                    using var context = new Core.AppDbContext();
 
                                     var userTasks = await context.UserTasks
                                       .Where(task => task.UserId == chatId)
                                       .ToListAsync();
-                                    userTaskManager = new UserTaskManager(userTasks);
+                                    var manager = new UserTaskManager(_context);
 
                                     return;
                                 }
                                 else if (text == BotChatCommands.All)
                                 {
-                                    int Id = Int32.Parse(chatId.ToString());
-
-                                    List<UserTask> tasks = userTaskManager.GetAllUserTasks(Id);
-                                    await CommandManager.TakeAllTasksCommand(botClient, chatId, cancellationToken, tasks);
+                                    long currentUserId = chatId;
+                                    var userTasks = userTaskManagerTG.GetTasksByUserId(currentUserId);
+                                    await CommandManager.TakeAllTasksCommand(botClient, chatId, cancellationToken, userTasks);
                                 }
 
                                 else if (text == BotChatCommands.Create)
                                 {
                                     create = true;
-                                    CommandManager.RequestTaskDescriptionAsync(botClient, update);
+                                    await CommandManager.RequestTaskDescriptionAsync(botClient, update);
 
                                 }
                                 else if ((text != BotChatCommands.Create) && (create == true))
                                 {
-                                    int taskId = userTaskManager.UsersTasks.Count() + 1;
-                                    DateTime createDate = DateTime.Now;
-                                    int userId = Int32.Parse(chatId.ToString());
-                                    CommandManager.CreateTaskAsync(botClient, chatId, update);
-
-                                    userTaskManager.CreateUserTask(taskId, userId, taskData["title"], taskData["description"]);
+                                    long userId = chatId;
+                                    await CommandManager.CreateTaskAsync(botClient, chatId, update);
+                                    userTaskManagerTG.CreateUserTask(userId, taskData["title"], taskData["description"]);
                                     create = false;
-
-                                    using var context = new TelegramBotLibraryContext();
-
-                                    context.UserTasks.Add(new UserTask
-                                    {
-                                        UserId = userId,
-                                        Title = taskData["title"],
-                                        Description = taskData["description"],
-                                        Created = createDate
-                                    });
-
-                                    context.SaveChanges();
                                 }
                                 else
                                 {
@@ -179,47 +164,65 @@ namespace TiskTask.TelegramBot
                         return;
 
                     case Telegram.Bot.Types.Enums.UpdateType.CallbackQuery:
+                      {
+                        var callbackQuery = update.CallbackQuery;
+                        if (callbackQuery == null || string.IsNullOrWhiteSpace(callbackQuery.Data))
                         {
-                            var callbackQuery = update.CallbackQuery;
-                            var user = callbackQuery.From;
-                            var chat = callbackQuery.Message.Chat;
+                          return;
+                        }
 
-                            //int IdTask = Int32.Parse(callbackQuery.Data);
-                            var tryBotton = callbackQuery.Data;
-                            var parse = tryBotton.Split('_');
+                        var user = callbackQuery.From;
+                        var chat = callbackQuery.Message?.Chat;
+                        if (chat == null)
+                        {
+                          return;
+                        }
 
-                            var IdTask = Int32.Parse(parse[0]);
-                            var action = parse[1];
+                        var tryBotton = callbackQuery.Data;
+                        var parse = tryBotton.Split('_');
 
-                            switch (action)
+                        if (parse.Length < 2 || !int.TryParse(parse[0], out int IdTask))
+                        {
+                          await botClient.AnswerCallbackQuery(callbackQuery.Id, "Ошибка: неверный формат данных кнопки.");
+                          return;
+                        }
+
+                        var action = parse[1];
+
+                        switch (action)
+                        {
+                          case "start":
+                            Console.WriteLine("start");
+                            break;
+
+                          case "stop":
+                            Console.WriteLine("stop");
+                            break;
+
+                          case "edit":
+                            Console.WriteLine("edit");
+                            UserTask? userTask = userTaskManagerTG.GetUserTaskById(IdTask);
+
+                            if (userTask == null)
                             {
-                                case "start":
-                                    Console.WriteLine("start");
-                                    break;
-
-                                case "stop":
-                                    Console.WriteLine("stop");
-                                    break;
-
-                                case "edit":
-                                    Console.WriteLine("edit");
-                                    UserTask userTask = userTaskManager.GetUserTaskById(IdTask);
-                                    userTaskManager.ChangeUserTask(userTask);
-                                    break;
-
-                                case "remove":
-                                    Console.WriteLine("remove");
-                                    userTaskManager.DeleteUserTask(IdTask);
-                                    break;
+                              await botClient.AnswerCallbackQuery(callbackQuery.Id, "Ошибка: Задача не найдена в базе!");
+                              return;
                             }
 
-                            Console.WriteLine(IdTask);
-                            Console.WriteLine(action);
+                            userTaskManagerTG.ChangeUserTask(userTask);
+                            break;
 
-                            await botClient.AnswerCallbackQuery(callbackQuery.Id);
-
+                          case "remove":
+                            Console.WriteLine("remove");
+                            userTaskManagerTG.DeleteUserTask(IdTask);
+                            break;
                         }
-                        return;
+
+                        Console.WriteLine(IdTask);
+                        Console.WriteLine(action);
+                        await botClient.AnswerCallbackQuery(callbackQuery.Id);
+                      }
+                      return;
                 }
             }
             catch (Exception ex)

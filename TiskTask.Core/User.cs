@@ -1,36 +1,36 @@
 using System;
 using System.Collections.Generic;
+using TiskTask.Core;
 
-namespace TiskTask.Core
+namespace TiskTask.Model;
+
+/// <summary>
+/// Сущность пользователя в базе данных
+/// </summary>
+public class User
 {
-    /// <summary>
-    /// Описывает пользователя системы и его задачи.
-    /// </summary>
-    public class User
-    {
-        /// <summary>
-        /// Идентификатор пользователя.
-        /// </summary>
-        public long Id { get; set; }
+  /// <summary>
+  /// Уникальный идентификатор пользователя (например, Telegram ID)
+  /// </summary>
+  public long Id { get; set; }
 
-        /// <summary>
-        /// Отображаемое имя пользователя.
-        /// </summary>
-        public string Name { get; set; } = string.Empty;
+  /// <summary>
+  /// Имя пользователя или логин
+  /// </summary>
+  public string Name { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Дата создания пользователя.
-        /// </summary>
-        public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+  /// <summary>
+  /// Хэшированный пароль для авторизации
+  /// </summary>
+  public string Password { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Список задач пользователя.
-        /// </summary>
-        public List<UserTask> Tasks { get; set; } = new List<UserTask>();
+  /// <summary>
+  /// Дата регистрации
+  /// </summary>
+  public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
-        public override string ToString()
-        {
-            return Name;
-        }
-    }
+  /// <summary>
+  /// Навигационное свойство: список задач этого пользователя
+  /// </summary>
+  public virtual ICollection<UserTask> Tasks { get; set; } = new List<UserTask>();
 }

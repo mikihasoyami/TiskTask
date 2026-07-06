@@ -12,7 +12,8 @@ namespace TiskTask.TelegramBot;
 
 public class CommandManager
 {
-    private static readonly UserTaskManager _userTaskManager = new UserTaskManager();
+    private static readonly AppDbContext _context = new AppDbContext();
+    private static readonly UserTaskManager _userTaskManager = new UserTaskManager(_context);
 
     /// <summary>
     /// Метод для обработки команды /all
@@ -65,6 +66,10 @@ public class CommandManager
     /// <returns></returns>
     public static async Task RequestTaskDescriptionAsync(ITelegramBotClient botClient, Update update)
     {
+        if (update.Message == null || string.IsNullOrWhiteSpace(update.Message.Text))
+        {
+          return;
+        }
         var newChatId = update.Message.Chat.Id;
         var message = update.Message;
         if (message.Text == "/create")
@@ -83,6 +88,10 @@ public class CommandManager
     /// <returns></returns>
     public static async Task CreateTaskAsync(ITelegramBotClient botClient, long chatId, Update update)
     {
+        if (update.Message == null || string.IsNullOrWhiteSpace(update.Message.Text))
+        {
+          return;
+        }
         var newChatId = update.Message.Chat.Id;
         var message = update.Message;
         try
@@ -99,15 +108,6 @@ public class CommandManager
                 taskDiscription = description[1];
                 UpdateHandler.taskData.Add("title", taskTitle);
                 UpdateHandler.taskData.Add("description", taskDiscription);
-
-                //Dictionary<string, string> taskDate = new Dictionary<string, string>();
-                //        taskDate.Add("title", taskTitle);
-                //        taskDate.Add("description", taskDiscription);
-                /*TaskManager.CreateTask(taskTitle,taskDiscription);*/
-
-                //UserTaskManager.CreateUserTask
-                //UpdateHandler updateHandler = new UpdateHandler(botClient);
-                //_userTaskManager.CreateUserTask(taskId, userId, taskTitle, taskDiscription, createDate);
 
             }
             else
