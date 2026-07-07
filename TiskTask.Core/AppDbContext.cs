@@ -78,6 +78,7 @@ public partial class AppDbContext : Microsoft.EntityFrameworkCore.DbContext
     Database.EnsureCreated();
     EnsureUsersSchema();
     EnsureUserTaskSchema();
+    SeedDefaultAdmin();
     SeedLegacyUsers();
   }
 
@@ -123,7 +124,8 @@ public partial class AppDbContext : Microsoft.EntityFrameworkCore.DbContext
                 "Id" INTEGER NOT NULL CONSTRAINT "PK_Users" PRIMARY KEY AUTOINCREMENT,
                 "Name" TEXT NOT NULL,
                 "Password" TEXT NOT NULL DEFAULT '',
-                "CreatedAtUtc" TEXT NOT NULL
+                "CreatedAtUtc" TEXT NOT NULL,
+                "IsAdmin" INTEGER NOT NULL DEFAULT 0
             );
             """);
   }
@@ -225,6 +227,25 @@ public partial class AppDbContext : Microsoft.EntityFrameworkCore.DbContext
       {
         connection.Close();
       }
+    }
+  }
+
+  private void SeedDefaultAdmin()
+  {
+    var adminExists = Users.Any(u => u.Name == "admin");
+
+    if (!adminExists)
+    {
+      var defaultAdmin = new User
+      {
+        Name = "admin",
+        Password = "admin",
+        CreatedAtUtc = DateTime.UtcNow,
+        IsAdmin = true
+      };
+
+      Users.Add(defaultAdmin);
+      SaveChanges();
     }
   }
 

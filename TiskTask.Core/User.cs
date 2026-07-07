@@ -28,7 +28,7 @@ public class User
   /// Дата регистрации
   /// </summary>
   public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
-
+  public bool IsAdmin { get; set; }
   /// <summary>
   /// Навигационное свойство: список задач этого пользователя
   /// </summary>

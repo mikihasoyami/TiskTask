@@ -16,17 +16,19 @@ public partial class Form1 : Form
 
     private readonly AppDbContext _context;
     private readonly UserTaskManager _manager;
+    private readonly bool _isAdmin;
     private int? _selectedTaskId;
     private long? _selectedUserId;
     private bool _isLoadingUsers;
     private bool _isRefreshing;
 
-    public Form1(AppDbContext context, long loggedInUserId)
+    public Form1(AppDbContext context, long loggedInUserId, bool isAdmin)
     {
         InitializeComponent();
         _context = context;
         _manager = new UserTaskManager(_context);
         _selectedUserId = loggedInUserId;
+        _isAdmin = isAdmin;
   }
 
     private void Form1_Load(object? sender, EventArgs e)
@@ -36,7 +38,12 @@ public partial class Form1 : Form
         RefreshTasks();
         ClearEditor();
         refreshTimer.Start();
-    }
+        if (!_isAdmin)
+        {
+          addUserButton.Visible = false;
+          usersComboBox.Enabled = false;
+        }
+  }
 
     private void refreshTimer_Tick(object? sender, EventArgs e)
     {
@@ -268,7 +275,7 @@ public partial class Form1 : Form
 
       var allUsers = _manager.GetAllUsers();
       var userDictionary = allUsers.ToDictionary(user => user.Id, user => user.Name);
-      var allTasks = _manager.GetAllTasks();
+      var allTasks = _manager.GetAllTasks().Where(t => t.UserId == _selectedUserId).ToList();
       var sortedTasks = allTasks.OrderBy(x => x.Id).ToList();
       var filteredTasks = ApplyStatusFilter(sortedTasks).ToList();
       var selectedTaskId = keepSelection ? _selectedTaskId : null;
@@ -460,31 +467,33 @@ public partial class Form1 : Form
 
     private void LoadUsers(long? selectedUserId = null)
     {
-        var users = _manager.GetAllUsers();
+      var users = _isAdmin
+          ? _manager.GetAllUsers()
+          : _manager.GetAllUsers().Where(u => u.Id == _selectedUserId).ToList();
 
-        _isLoadingUsers = true;
-        usersComboBox.DataSource = null;
-        if (users.Count == 0)
-        {
-            _selectedUserId = null;
-            usersComboBox.Enabled = false;
-            _isLoadingUsers = false;
-            return;
-        }
-
-        usersComboBox.Enabled = true;
-        usersComboBox.DisplayMember = nameof(User.Name);
-        usersComboBox.ValueMember = nameof(User.Id);
-        usersComboBox.DataSource = users;
-
-        var targetUserId = selectedUserId ?? _selectedUserId ?? users[0].Id;
-        var targetUser = users.FirstOrDefault(user => user.Id == targetUserId) ?? users[0];
-        usersComboBox.SelectedItem = targetUser;
-        _selectedUserId = targetUser.Id;
+      _isLoadingUsers = true;
+      usersComboBox.DataSource = null;
+      if (users.Count == 0)
+      {
+        _selectedUserId = null;
+        usersComboBox.Enabled = false;
         _isLoadingUsers = false;
+        return;
+      }
+
+      usersComboBox.Enabled = _isAdmin;
+      usersComboBox.DisplayMember = nameof(User.Name);
+      usersComboBox.ValueMember = nameof(User.Id);
+      usersComboBox.DataSource = users;
+
+      var targetUserId = selectedUserId ?? _selectedUserId ?? users[0].Id;
+      var targetUser = users.FirstOrDefault(user => user.Id == targetUserId) ?? users[0];
+      usersComboBox.SelectedItem = targetUser;
+      _selectedUserId = targetUser.Id;
+      _isLoadingUsers = false;
     }
 
-    private bool EnsureUserSelected()
+  private bool EnsureUserSelected()
     {
         if (_selectedUserId != null)
         {
