@@ -14,17 +14,20 @@ public partial class Form1 : Form
         Completed
     }
 
-    private static readonly AppDbContext _context = new AppDbContext();
-    private readonly UserTaskManager _manager = new UserTaskManager(_context);
+    private readonly AppDbContext _context;
+    private readonly UserTaskManager _manager;
     private int? _selectedTaskId;
     private long? _selectedUserId;
     private bool _isLoadingUsers;
     private bool _isRefreshing;
 
-    public Form1()
+    public Form1(AppDbContext context, long loggedInUserId)
     {
         InitializeComponent();
-    }
+        _context = context;
+        _manager = new UserTaskManager(_context);
+        _selectedUserId = loggedInUserId;
+  }
 
     private void Form1_Load(object? sender, EventArgs e)
     {
@@ -42,13 +45,13 @@ public partial class Form1 : Form
 
     private void tasksListView_SelectedIndexChanged(object? sender, EventArgs e)
     {
-        if ((_isRefreshing) || (tasksListView.SelectedItems.Count == 0) || (tasksListView.SelectedItems[0].Tag is not int taskId))
-            return;
+        if ((_isRefreshing) || (tasksListView.SelectedItems.Count == 0) || (tasksListView.SelectedItems[0].Tag is not long taskId))
+          return;
 
-        SelectTask(taskId);
+        SelectTask((int)taskId);
     }
 
-    private void statusFilterComboBox_SelectedIndexChanged(object? sender, EventArgs e)
+  private void statusFilterComboBox_SelectedIndexChanged(object? sender, EventArgs e)
     {
         RefreshTasks(keepSelection: true);
     }
@@ -76,6 +79,7 @@ public partial class Form1 : Form
     private void addUserButton_Click(object? sender, EventArgs e)
     {
     var userName = PromptForText("Новый пользователь", "Введите имя пользователя:");
+    var Password = PromptForText("Новый пользователь", "Введите пароль:");
     if (string.IsNullOrWhiteSpace(userName))
     {
       return;
