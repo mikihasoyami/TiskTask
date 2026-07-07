@@ -135,10 +135,7 @@ public class UserTaskManager
     };
 
     _context.UserTasks.Add(newUserTask);
-
-    // 3. Сохраняем задачу
     _context.SaveChanges();
-
     return newUserTask;
   }
 

@@ -67,7 +67,7 @@ public class UserTask
 
     #region Конструкторы
 
-    public UserTask(int id, long userId, string title, string description, DateTime createdDate)
+    public UserTask(int id, int userId, string title, string description, DateTime createdDate)
     {
         Id = id;
         UserId = userId;
@@ -77,7 +77,7 @@ public class UserTask
         TimeSpent = TimeSpan.Zero;
     }
 
-    public UserTask(long userId, string title, string description)
+    public UserTask(int userId, string title, string description)
     {
         UserId = userId;
         Title = title;
@@ -87,7 +87,6 @@ public class UserTask
 
     public UserTask()
     {
-        Id = 1;
         UserId = -1;
         Title = "None";
         Description = "None";

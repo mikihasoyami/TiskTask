@@ -50,7 +50,6 @@ public partial class AppDbContext : Microsoft.EntityFrameworkCore.DbContext
       entity.ToTable("Users");
       entity.HasKey(user => user.Id);
       entity.Property(user => user.Name).IsRequired();
-
       entity.Property(user => user.Password).IsRequired().HasDefaultValue(string.Empty);
     });
 
@@ -58,6 +57,7 @@ public partial class AppDbContext : Microsoft.EntityFrameworkCore.DbContext
     {
       entity.ToTable("UserTask");
       entity.HasKey(task => task.Id);
+      entity.Property(task => task.Id).ValueGeneratedOnAdd();
 
       entity.Property(task => task.Status)
           .HasConversion<int>()
@@ -120,7 +120,7 @@ public partial class AppDbContext : Microsoft.EntityFrameworkCore.DbContext
     Database.ExecuteSqlRaw(
         """
             CREATE TABLE IF NOT EXISTS "Users" (
-                "Id" INTEGER NOT NULL CONSTRAINT "PK_Users" PRIMARY KEY,
+                "Id" INTEGER NOT NULL CONSTRAINT "PK_Users" PRIMARY KEY AUTOINCREMENT,
                 "Name" TEXT NOT NULL,
                 "Password" TEXT NOT NULL DEFAULT '',
                 "CreatedAtUtc" TEXT NOT NULL
