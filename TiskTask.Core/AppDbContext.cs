@@ -239,7 +239,7 @@ public partial class AppDbContext : Microsoft.EntityFrameworkCore.DbContext
       var defaultAdmin = new User
       {
         Name = "admin",
-        Password = "admin",
+        Password = "jGl25bVBBBW96Qi9Te4V37Fnqchz/Eu4qB9vKrRIqRg=",
         CreatedAtUtc = DateTime.UtcNow,
         IsAdmin = true
       };

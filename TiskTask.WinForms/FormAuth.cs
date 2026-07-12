@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using TiskTask.Core;
+using TiskTask.Services;
 
 namespace TiskTask.WinForms;
 
@@ -101,7 +102,7 @@ public partial class AuthForm : Form
 
     var user = _context.Users.FirstOrDefault(u => u.Name == username);
 
-    if (user == null || user.Password != password)
+    if (user == null || !PasswordHasher.VerifyPassword(password, user.Password))
     {
       MessageBox.Show("Неверное имя пользователя или пароль.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
       return;
@@ -115,17 +116,19 @@ public partial class AuthForm : Form
   private void RegisterButton_Click(object? sender, EventArgs e)
   {
     var username = loginTextBox.Text.Trim();
-    var password = passwordTextBox.Text;
+    var password = passwordTextBox.Text ?? string.Empty;
 
     if (string.IsNullOrWhiteSpace(username))
     {
-      MessageBox.Show("Имя пользователя не может быть пустым.", "Регистрация", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+      MessageBox.Show("Имя пользователя не может быть пустым.", "Регистрация",
+          MessageBoxButtons.OK, MessageBoxIcon.Warning);
       return;
     }
 
     if (_context.Users.Any(u => u.Name == username))
     {
-      MessageBox.Show("Пользователь с таким именем уже существует.", "Регистрация", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+      MessageBox.Show("Пользователь с таким именем уже существует.", "Регистрация",
+          MessageBoxButtons.OK, MessageBoxIcon.Warning);
       return;
     }
 
@@ -134,18 +137,20 @@ public partial class AuthForm : Form
       var newUser = new Model.User
       {
         Name = username,
-        Password = password,
+        Password = TiskTask.Services.PasswordHasher.HashPassword(password),
         CreatedAtUtc = DateTime.UtcNow
       };
 
       _context.Users.Add(newUser);
       _context.SaveChanges();
 
-      MessageBox.Show($"Пользователь {username} успешно создан! Теперь вы можете войти.", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
+      MessageBox.Show($"Пользователь {username} успешно создан! Теперь вы можете войти.", "Успех",
+          MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
     catch (Exception ex)
     {
-      MessageBox.Show($"Ошибка при регистрации: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+      MessageBox.Show($"Ошибка при регистрации: {ex.Message}", "Ошибка",
+          MessageBoxButtons.OK, MessageBoxIcon.Error);
     }
   }
 }

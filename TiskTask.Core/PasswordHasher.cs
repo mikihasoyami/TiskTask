@@ -5,7 +5,7 @@ using System.Text;
 
 namespace TiskTask.Services
 {
-    internal class PasswordHasher
+    public class PasswordHasher
     {
         /// <summary>
         /// Хешировать пароль (без соли)

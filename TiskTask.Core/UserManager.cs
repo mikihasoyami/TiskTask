@@ -22,8 +22,6 @@ public class UserManager
   {
     var user = _context.Users.FirstOrDefault(u => u.Name == login);
     if (user == null) return false;
-
-    // Проверяем хэш пароля
     return PasswordHasher.VerifyPassword(password, user.Password);
   }
 
@@ -32,17 +30,10 @@ public class UserManager
   /// </summary>
   public User? GetUser(string login, string password)
   {
-    var user = _context.Users
-        .AsNoTracking()
-        .FirstOrDefault(u => u.Name == login);
-
+    var user = _context.Users.FirstOrDefault(u => u.Name == login);
     if (user == null) return null;
-
     if (PasswordHasher.VerifyPassword(password, user.Password))
-    {
       return user;
-    }
-
     return null;
   }
 
@@ -51,20 +42,13 @@ public class UserManager
   /// </summary>
   public void CreateNewUser(string login, string password)
   {
-    var isLoginTaken = _context.Users.Any(u => u.Name == login);
-    if (isLoginTaken)
-    {
-      throw new ArgumentException("Пользователь с таким логином уже зарегистрирован!");
-    }
-
-    var newUser = new User
+    var user = new User
     {
       Name = login,
       Password = PasswordHasher.HashPassword(password),
       CreatedAtUtc = DateTime.UtcNow
     };
-
-    _context.Users.Add(newUser);
+    _context.Users.Add(user);
     _context.SaveChanges();
   }
 }

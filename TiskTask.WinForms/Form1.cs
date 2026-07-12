@@ -47,16 +47,27 @@ public partial class Form1 : Form
 
     private void refreshTimer_Tick(object? sender, EventArgs e)
     {
+        var focusedControl = this.ActiveControl;
         RefreshTasks(keepSelection: true);
-    }
+        focusedControl?.Focus();
+  }
 
-    private void tasksListView_SelectedIndexChanged(object? sender, EventArgs e)
+  private void tasksListView_SelectedIndexChanged(object? sender, EventArgs e)
+  {
+    if (_isRefreshing) return;
+
+    if (tasksListView.SelectedItems.Count == 0)
     {
-        if ((_isRefreshing) || (tasksListView.SelectedItems.Count == 0) || (tasksListView.SelectedItems[0].Tag is not long taskId))
-          return;
-
-        SelectTask((int)taskId);
+      _selectedTaskId = null;
+      return;
     }
+
+    if (tasksListView.SelectedItems[0].Tag is int taskId)
+    {
+      SelectTask(taskId);
+    }
+  }
+
 
   private void statusFilterComboBox_SelectedIndexChanged(object? sender, EventArgs e)
     {
@@ -269,54 +280,77 @@ public partial class Form1 : Form
         RefreshTasks(keepSelection: true);
     }
 
-    private void RefreshTasks(bool keepSelection = false)
+  private void RefreshTasks(bool keepSelection = false)
+  {
+    _isRefreshing = true;
+    var selectedId = keepSelection ? _selectedTaskId : null;
+
+    // 1. Подготовка данных
+    var userDictionary = _manager.GetAllUsers().ToDictionary(u => u.Id, u => u.Name);
+    var filteredTasks = ApplyStatusFilter(_manager.GetAllTasks())
+        .Where(t => t.UserId == _selectedUserId)
+        .OrderBy(t => t.Id)
+        .ToList();
+
+    tasksListView.BeginUpdate();
+    try
     {
-      _isRefreshing = true;
-
-      var allUsers = _manager.GetAllUsers();
-      var userDictionary = allUsers.ToDictionary(user => user.Id, user => user.Name);
-      var allTasks = _manager.GetAllTasks().Where(t => t.UserId == _selectedUserId).ToList();
-      var sortedTasks = allTasks.OrderBy(x => x.Id).ToList();
-      var filteredTasks = ApplyStatusFilter(sortedTasks).ToList();
-      var selectedTaskId = keepSelection ? _selectedTaskId : null;
-
-      tasksListView.BeginUpdate();
+      // 2. Полная очистка и быстрая генерация новых элементов
       tasksListView.Items.Clear();
 
       foreach (var task in filteredTasks)
       {
-        var userName = userDictionary.ContainsKey(task.UserId)
-            ? userDictionary[task.UserId]
-            : $"Пользователь {task.UserId}";
+        var userName = userDictionary.TryGetValue(task.UserId, out var name) ? name : $"Пользователь {task.UserId}";
+        var timeText = _manager.GetTrackedTime(task.Id).ToString(@"hh\:mm\:ss");
 
-        var item = new ListViewItem(userName);
+        var item = new ListViewItem(userName)
+        {
+          Tag = task.Id,
+          BackColor = GetTaskBackColor(task),
+          ForeColor = GetTaskForeColor(task)
+        };
         item.SubItems.Add(task.Title);
         item.SubItems.Add(GetTaskStatusText(task));
-        item.SubItems.Add(_manager.GetTrackedTime(task.Id).ToString(@"hh\:mm\:ss"));
-        item.Tag = task.Id;
-        item.BackColor = GetTaskBackColor(task);
-        item.ForeColor = GetTaskForeColor(task);
-        tasksListView.Items.Add(item);
+        item.SubItems.Add(timeText);
 
-        if (selectedTaskId == task.Id)
+        tasksListView.Items.Add(item);
+      }
+
+      // 3. Восстановление выделения
+      if (selectedId.HasValue)
+      {
+        var selItem = tasksListView.Items.Cast<ListViewItem>()
+            .FirstOrDefault(i => i.Tag is int id && id == selectedId.Value);
+
+        if (selItem != null)
         {
-          item.Selected = true;
+          selItem.Selected = true;
+          selItem.Focused = true;
+          selItem.EnsureVisible();
+          _selectedTaskId = selectedId;
+        }
+        else
+        {
+          _selectedTaskId = null;
         }
       }
-
+    }
+    finally
+    {
       tasksListView.EndUpdate();
       _isRefreshing = false;
-
-      UpdateActiveTaskLabel();
-
-      if (_selectedTaskId != null && !filteredTasks.Any(x => x.Id == _selectedTaskId.Value))
-      {
-        ClearEditor();
-      }
     }
 
+    // 4. Проверка редактора
+    UpdateActiveTaskLabel();
+    if (_selectedTaskId != null && !filteredTasks.Any(x => x.Id == _selectedTaskId.Value))
+    {
+      ClearEditor();
+    }
+  }
 
-    private void SelectTask(int taskId)
+
+  private void SelectTask(int taskId)
     {
         var task = _manager.GetUserTaskById(taskId);
         if (task == null)
