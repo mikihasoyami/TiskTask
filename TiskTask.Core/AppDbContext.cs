@@ -75,9 +75,7 @@ public partial class AppDbContext : Microsoft.EntityFrameworkCore.DbContext
 
   private void InitializeDatabase()
   {
-    Database.EnsureCreated();
-    EnsureUsersSchema();
-    EnsureUserTaskSchema();
+    Database.Migrate();
     SeedDefaultAdmin();
     SeedLegacyUsers();
   }
@@ -113,120 +111,6 @@ public partial class AppDbContext : Microsoft.EntityFrameworkCore.DbContext
 
       File.Copy(legacyDatabasePath, targetDatabasePath, overwrite: false);
       return;
-    }
-  }
-
-  private void EnsureUsersSchema()
-  {
-    Database.ExecuteSqlRaw(
-        """
-            CREATE TABLE IF NOT EXISTS "Users" (
-                "Id" INTEGER NOT NULL CONSTRAINT "PK_Users" PRIMARY KEY AUTOINCREMENT,
-                "Name" TEXT NOT NULL,
-                "Password" TEXT NOT NULL DEFAULT '',
-                "CreatedAtUtc" TEXT NOT NULL,
-                "IsAdmin" INTEGER NOT NULL DEFAULT 0
-            );
-            """);
-  }
-
-  private void EnsureUserTaskSchema()
-  {
-    Database.ExecuteSqlRaw(
-        """
-            CREATE TABLE IF NOT EXISTS "UserTask" (
-                "Id" INTEGER NOT NULL CONSTRAINT "PK_UserTask" PRIMARY KEY AUTOINCREMENT,
-                "UserId" INTEGER NOT NULL,
-                "Title" TEXT NOT NULL,
-                "Description" TEXT NULL,
-                "Created" TEXT NOT NULL,
-                "TimeSpent" TEXT NOT NULL,
-                CONSTRAINT "FK_UserTask_Users_UserId" FOREIGN KEY ("UserId") REFERENCES "Users" ("Id") ON DELETE CASCADE
-            );
-            """);
-
-    var connection = Database.GetDbConnection();
-    var shouldCloseConnection = connection.State != ConnectionState.Open;
-
-    if (shouldCloseConnection)
-    {
-      connection.Open();
-    }
-
-    try
-    {
-      var existingColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-      using (var command = connection.CreateCommand())
-      {
-        command.CommandText = "PRAGMA table_info('UserTask');";
-
-        using var reader = command.ExecuteReader();
-        while (reader.Read())
-        {
-          existingColumns.Add(reader.GetString(reader.GetOrdinal("name")));
-        }
-      }
-
-      if (!existingColumns.Contains(nameof(UserTask.IsRunning)))
-      {
-        Database.ExecuteSqlRaw(
-            $"ALTER TABLE \"UserTask\" ADD COLUMN \"{nameof(UserTask.IsRunning)}\" INTEGER NOT NULL DEFAULT 0;");
-      }
-
-      if (!existingColumns.Contains(nameof(UserTask.StartedAtUtc)))
-      {
-        Database.ExecuteSqlRaw(
-            $"ALTER TABLE \"UserTask\" ADD COLUMN \"{nameof(UserTask.StartedAtUtc)}\" TEXT NULL;");
-      }
-
-      if (!existingColumns.Contains(nameof(UserTask.IsCompleted)))
-      {
-        Database.ExecuteSqlRaw(
-            $"ALTER TABLE \"UserTask\" ADD COLUMN \"{nameof(UserTask.IsCompleted)}\" INTEGER NOT NULL DEFAULT 0;");
-      }
-
-      if (!existingColumns.Contains(nameof(UserTask.CompletedAtUtc)))
-      {
-        Database.ExecuteSqlRaw(
-            $"ALTER TABLE \"UserTask\" ADD COLUMN \"{nameof(UserTask.CompletedAtUtc)}\" TEXT NULL;");
-      }
-
-      if (!existingColumns.Contains(nameof(UserTask.Status)))
-      {
-        Database.ExecuteSqlRaw(
-            $"ALTER TABLE \"UserTask\" ADD COLUMN \"{nameof(UserTask.Status)}\" INTEGER NOT NULL DEFAULT 0;");
-
-        Database.ExecuteSqlRaw(
-            $"UPDATE \"UserTask\" SET \"Status\" = 3 WHERE \"{nameof(UserTask.IsCompleted)}\" = 1;");
-
-        Database.ExecuteSqlRaw(
-            $"UPDATE \"UserTask\" SET \"Status\" = 1 WHERE \"{nameof(UserTask.IsRunning)}\" = 1 AND \"{nameof(UserTask.IsCompleted)}\" = 0;");
-      }
-
-      var userColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-      using (var command = connection.CreateCommand())
-      {
-        command.CommandText = "PRAGMA table_info('Users');";
-        using var reader = command.ExecuteReader();
-        while (reader.Read())
-        {
-          userColumns.Add(reader.GetString(reader.GetOrdinal("name")));
-        }
-      }
-
-      if (!userColumns.Contains(nameof(User.Password)))
-      {
-        Database.ExecuteSqlRaw(
-            $"ALTER TABLE \"Users\" ADD COLUMN \"{nameof(User.Password)}\" TEXT NOT NULL DEFAULT '';");
-      }
-    }
-    finally
-    {
-      if (shouldCloseConnection)
-      {
-        connection.Close();
-      }
     }
   }
 
