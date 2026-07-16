@@ -1,0 +1,174 @@
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.IO;
+using System.Linq;
+using TiskTask.Model;
+
+namespace TiskTask.Core;
+
+public partial class AppDbContext : Microsoft.EntityFrameworkCore.DbContext
+{
+  private const string AppFolderName = "TiskTask";
+  private const string DatabaseFileName = "tisktask.db";
+  private static readonly string[] LegacyDatabaseFileNames =
+  {
+        DatabaseFileName,
+        "libraryApp.db",
+        "telegramBotLibrary.db"
+    };
+
+  public AppDbContext()
+  {
+    InitializeDatabase();
+  }
+
+  public AppDbContext(DbContextOptions<AppDbContext> options)
+      : base(options)
+  {
+    InitializeDatabase();
+  }
+
+  public virtual DbSet<User> Users { get; set; }
+  public virtual DbSet<UserTask> UserTasks { get; set; }
+
+  protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+  {
+    if (!optionsBuilder.IsConfigured)
+    {
+      var dbPath = GetDatabasePath();
+      optionsBuilder.UseSqlite($"Data Source={dbPath}");
+    }
+  }
+
+  protected override void OnModelCreating(ModelBuilder modelBuilder)
+  {
+    modelBuilder.Entity<User>(entity =>
+    {
+      entity.ToTable("Users");
+      entity.HasKey(user => user.Id);
+      entity.Property(user => user.Name).IsRequired();
+      entity.Property(user => user.Password).IsRequired().HasDefaultValue(string.Empty);
+    });
+
+    modelBuilder.Entity<UserTask>(entity =>
+    {
+      entity.ToTable("UserTask");
+      entity.HasKey(task => task.Id);
+      entity.Property(task => task.Id).ValueGeneratedOnAdd();
+
+      entity.Property(task => task.Status)
+          .HasConversion<int>()
+          .HasDefaultValue(UserTaskStatus.New)
+          .IsRequired();
+
+      entity.HasOne<User>()
+          .WithMany(user => user.Tasks)
+          .HasForeignKey(task => task.UserId)
+          .OnDelete(DeleteBehavior.Cascade);
+    });
+
+    OnModelCreatingPartial(modelBuilder);
+  }
+
+  private void InitializeDatabase()
+  {
+    Database.Migrate();
+    SeedDefaultAdmin();
+    SeedLegacyUsers();
+  }
+
+  private static string GetDatabasePath()
+  {
+    var appDataDirectory = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        AppFolderName);
+
+    Directory.CreateDirectory(appDataDirectory);
+
+    var appDataDatabasePath = Path.Combine(appDataDirectory, DatabaseFileName);
+    TryMigrateLegacyDatabase(appDataDatabasePath);
+
+    return appDataDatabasePath;
+  }
+
+  private static void TryMigrateLegacyDatabase(string targetDatabasePath)
+  {
+    if (File.Exists(targetDatabasePath))
+    {
+      return;
+    }
+
+    foreach (var legacyFileName in LegacyDatabaseFileNames.Distinct(StringComparer.OrdinalIgnoreCase))
+    {
+      var legacyDatabasePath = Path.Combine(AppContext.BaseDirectory, legacyFileName);
+      if (!File.Exists(legacyDatabasePath))
+      {
+        continue;
+      }
+
+      File.Copy(legacyDatabasePath, targetDatabasePath, overwrite: false);
+      return;
+    }
+  }
+
+  private void SeedDefaultAdmin()
+  {
+    var adminExists = Users.Any(u => u.Name == "admin");
+
+    if (!adminExists)
+    {
+      var defaultAdmin = new User
+      {
+        Name = "admin",
+        Password = "jGl25bVBBBW96Qi9Te4V37Fnqchz/Eu4qB9vKrRIqRg=",
+        CreatedAtUtc = DateTime.UtcNow,
+        IsAdmin = true
+      };
+
+      Users.Add(defaultAdmin);
+      SaveChanges();
+    }
+  }
+
+  private void SeedLegacyUsers()
+  {
+    var legacyUserIds = UserTasks
+        .Select(task => task.UserId)
+        .Distinct()
+        .ToList();
+
+    if (legacyUserIds.Count == 0)
+    {
+      return;
+    }
+
+    var existingUserIds = Users
+        .Select(user => user.Id)
+        .ToHashSet();
+
+    var now = DateTime.UtcNow;
+    var newUsers = legacyUserIds
+        .Where(userId => !existingUserIds.Contains(userId))
+        .Select(userId => new User
+        {
+          Id = userId,
+          Name = $"Пользователь {userId}",
+          Password = "", 
+          CreatedAtUtc = now
+        })
+        .ToList();
+
+    if (newUsers.Count == 0)
+    {
+      return;
+    }
+
+    Users.AddRange(newUsers);
+    SaveChanges();
+  }
+
+  partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
+}
